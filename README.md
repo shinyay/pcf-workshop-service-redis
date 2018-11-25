@@ -398,12 +398,21 @@ start command:          JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/
 
 ### アプリケーションの動作確認
 
+#### ブラウザからの確認
+ブラウザからアプリケーションにアクセスします。
+
+上記の例であれば、デプロイ時のログの **routes** に表示されている値から、https://hello-pcf-redis-thankful-chipmunk.cfapps.io にアクセスします。
+
+数回繰り返してアクセスします。
+メッセージ内容がキャッシュされているので、同じ内容が表示される事が確認できます。
+
 ![access app](images/access-app.png)
 
-
-#### ブラウザからの確認
-
 #### ログからの確認
+特にアプリケーションには設定を行うことなく、Pivotal Cloud Foundry 側に作成した Redis のサービスインスタンスに接続する事ができました。
+何が行われていたかをログで見てます。
+
+ログの表示は、以下のコマンドを使用します。
 
 ```
 $ cf logs hello-pcf-redis --recent
@@ -517,6 +526,51 @@ Retrieving logs for app hello-pcf-redis in org syanagihara-org / space developme
    2018-11-24T12:34:39.69+0900 [RTR/6] OUT hello-pcf-redis-thankful-chipmunk.cfapps.io - [2018-11-24T03:34:39.672+0000] "GET / HTTP/1.1" 200 0 48 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0.1 Safari/605.1.15" "10.10.2.71:54162" "10.10.149.165:61124" x_forwarded_for:"111.239.168.67, 10.10.2.71" x_forwarded_proto:"https" vcap_request_id:"1c69e712-9998-4f3f-6555-ed8054cb2603" response_time:0.019297638 app_id:"35db840d-998c-46d9-b18e-11b024f157bf" app_index:"0" x_b3_traceid:"ed2d1cf1aeaf785e" x_b3_spanid:"ed2d1cf1aeaf785e" x_b3_parentspanid:"-"
    2018-11-24T12:34:39.69+0900 [RTR/6] OUT
 ```
+</details>
+
+ログの中に以下の部分が見つかります。
+`EedisConnectionFactory` Bean を バインドした Redis のサービスインスタンス `hello-redis` で構成している事が確認できます。
+
+```
+OUT   .   ____          _            __ _ _
+OUT  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+OUT ( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+OUT  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+OUT   '  |____| .__|_| |_|_| |_\__, | / / / /
+OUT  =========|_|==============|___/=/_/_/_/
+OUT  :: Spring Boot ::        (v2.1.0.RELEASE)
+OUT 2018-11-24 03:32:19.254  INFO 18 --- [           main] pertySourceApplicationContextInitializer : 'cloud' property source added
+OUT 2018-11-24 03:32:19.260  INFO 18 --- [           main] nfigurationApplicationContextInitializer : Reconfiguration enabled
+OUT 2018-11-24 03:32:19.271  INFO 18 --- [           main] c.e.hellopcf.HelloPcfRedisApplication    : Starting HelloPcfRedisApplication on b039ec15-55e0-47eb-55da-e2ee with PID 18 (/home/vcap/app/BOOT-INF/classes started by vcap in /home/vcap/app)
+OUT 2018-11-24 03:32:19.272  INFO 18 --- [           main] c.e.hellopcf.HelloPcfRedisApplication    : The following profiles are active: cloud
+OUT 2018-11-24 03:32:20.830  INFO 18 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode!
+OUT 2018-11-24 03:32:20.835  INFO 18 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data repositories in DEFAULT mode.
+OUT 2018-11-24 03:32:20.891  INFO 18 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 28ms. Found 0 repository interfaces.
+OUT 2018-11-24 03:32:21.924  INFO 18 --- [           main] o.c.reconfiguration.CloudServiceUtils    : 'redisConnectionFactory' bean of type with 'org.springframework.data.redis.connection.RedisConnectionFactory' reconfigured with 'hello-redis' bean
+OUT 2018-11-24 03:32:22.874  INFO 18 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+OUT 2018-11-24 03:32:22.932  INFO 18 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+OUT 2018-11-24 03:32:22.933  INFO 18 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet Engine: Apache Tomcat/9.0.12
+```
+
+このように、Pivotal Cloud Foundry 上で作成したサービスインスタンスは特にアプリケーション側で事前に設定を行う必要なくアクセスする事ができます。
+ローカル環境での開発でローカル用に Redis へのアクセスする設定を行っていても、そのままデプロイして構いません。
+
+これが、Java Buildpackに含まれるAuto Reconfigureという仕組みになります。
+
+##### Auto Reconfigure
+- [Auto Reconfigure](https://github.com/cloudfoundry/java-buildpack-auto-reconfiguration#what-is-auto-reconfiguration)
+
+次のクラスの Bean が置換対象です。
+
+| Bean タイプ | サービスタイプ
+| --------- | ------------
+| `com.datastax.driver.core.Cluster` | Cassandra Service
+| `javax.sql.DataSource` | Relational Data Services (e.g. ClearDB, ElephantSQL)
+| `org.springframework.amqp.rabbit.connection.ConnectionFactory` | RabbitMQ Service (e.g. CloudAMQP)
+| `org.springframework.data.mongodb.MongoDbFactory` | Mongo Service (e.g. MongoLab)
+| `org.springframework.data.redis.connection.RedisConnectionFactory` | Redis Service (e.g. Redis Cloud)
+| `org.springframework.mail.javamail.JavaMailSender` | SMTP Service
+
 
 ## まとめ / 振り返り
 
