@@ -398,6 +398,9 @@ start command:          JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/
 
 ### アプリケーションの動作確認
 
+![access app](images/access-app.png)
+
+
 #### ブラウザからの確認
 
 #### ログからの確認
