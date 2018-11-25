@@ -249,12 +249,20 @@ OK
 
 
 #### サービスの環境情報
+アプリケーションにバインドしたサービスは環境変数 `VCAP_SERVICES` に登録されます。
+この情報を利用してアプリケーションはサービスインスタンスを使用します。
+
+環境変数を確認するには、以下のコマンドを使用します。
+
+```
+$ cf env <アプリケーション名>
+```
+
+<details><summary>実行結果</summary>
 
 ```
 $ cf env hello-pcf-redis
-```
 
-```
 syanagihara@pivotal.io として組織 syanagihara-org / スペース development 内のアプリ hello-pcf-redis の環境変数を取得しています...
 OK
 
@@ -324,12 +332,17 @@ OK
 
 ステージング中環境変数が設定されていません
 ```
+</details>
 
 #### アプリケーションの開始
+アプリケーションにサービスインスタンスをバインドしましたが、`--no-start` オプションでデプロイしているので、まだ起動していません。
+次に、アプリケーションを起動します。
 
 ```
 $ cf start hello-pcf-redis
 ```
+
+<details><summary>実行結果</summary>
 
 ```
 syanagihara@pivotal.io として組織 syanagihara-org / スペース development 内のアプリ hello-pcf-redis を開始しています...
@@ -381,6 +394,7 @@ start command:          JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/
      状態   開始日時               CPU    メモリー       ディスク       詳細
 #0   実行   2018-11-24T03:32:26Z   0.0%   130.6M of 1G   150.5M of 1G
 ```
+</details>
 
 ### アプリケーションの動作確認
 
@@ -391,6 +405,8 @@ start command:          JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/
 ```
 $ cf logs hello-pcf-redis --recent
 ```
+
+<details><summary>実行結果</summary>
 
 ```
 Retrieving logs for app hello-pcf-redis in org syanagihara-org / space development as syanagihara@pivotal.io...
