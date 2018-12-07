@@ -3,6 +3,8 @@
 !gradle/wrapper/gradle-wrapper.jar
 .DS_Store
 
+data/
+
 ### STS ###
 .apt_generated
 .classpath
